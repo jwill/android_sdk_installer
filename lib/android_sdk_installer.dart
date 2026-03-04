@@ -131,7 +131,101 @@ void main() async {
     print('\nAndroid Command Line Tools successfully installed to $targetPath');
     print('Remember to add the following to your shell profile:');
     print('export PATH="$targetPath/bin:\$PATH"');
+
+    await installJava();
   } catch (e) {
     print('\nAn error occurred during installation: $e');
+  }
+}
+
+/// Installs Java using SDKMAN if requested.
+Future<void> installJava() async {
+  final wantJava = Confirm(prompt: 'Do you want to install Java?').interact();
+  if (!wantJava) return;
+
+  final home = Platform.environment['HOME']!;
+  final sdkmanDir = p.join(home, '.sdkman');
+  final sdkmanInit = p.join(sdkmanDir, 'bin', 'sdkman-init.sh');
+  bool sdkmanExists = File(sdkmanInit).existsSync();
+
+  if (!sdkmanExists) {
+    print('SDKMAN not found. Installing SDKMAN...');
+    // curl -s "https://get.sdkman.io" | bash
+    final installProcess = await Process.start('bash', ['-c', 'curl -s "https://get.sdkman.io" | bash']);
+    stdout.addStream(installProcess.stdout);
+    stderr.addStream(installProcess.stderr);
+    
+    final exitCode = await installProcess.exitCode;
+    if (exitCode != 0) {
+      print('Failed to install SDKMAN.');
+      return;
+    }
+    print('SDKMAN installed successfully.');
+    sdkmanExists = true;
+  }
+
+  print('Querying available Java versions from SDKMAN...');
+  final listResult = await Process.run('bash', [
+    '-c',
+    'source $sdkmanInit && sdk ls java'
+  ]);
+
+  if (listResult.exitCode != 0) {
+    print('Failed to list Java versions: ${listResult.stderr}');
+    return;
+  }
+
+  final output = listResult.stdout as String;
+  final lines = output.split('\n');
+  final amznVersions = <String>[];
+
+  // Parse identifiers ending in amzn
+  for (var line in lines) {
+    if (line.contains('amzn') && line.contains('|')) {
+      final parts = line.split('|').map((e) => e.trim()).toList();
+      if (parts.length >= 6) {
+        final identifier = parts[5]; // The Identifier column
+        if (identifier.endsWith('amzn')) {
+          amznVersions.add(identifier);
+        }
+      }
+    }
+  }
+
+  if (amznVersions.isEmpty) {
+    print('Could not find any Amazon Corretto Java versions in SDKMAN output.');
+    return;
+  }
+
+  // Sort versions descending to show newer ones first
+  amznVersions.sort((a, b) => b.compareTo(a));
+
+  print('\nRecommendation: Java 11 (e.g., 11.x.x-amzn)');
+  
+  // Find a Java 11 version to recommend
+  final java11Index = amznVersions.indexWhere((v) => v.startsWith('11.'));
+  
+  final selectionIndex = Select(
+    prompt: 'Which version of Java would you like to install?',
+    options: amznVersions,
+    initialIndex: java11Index != -1 ? java11Index : 0,
+  ).interact();
+
+  final selectedVersion = amznVersions[selectionIndex];
+  print('Installing Java $selectedVersion...');
+
+  final installProcess = await Process.start('bash', [
+    '-c',
+    'source $sdkmanInit && sdk i java $selectedVersion'
+  ]);
+
+  stdout.addStream(installProcess.stdout);
+  stderr.addStream(installProcess.stderr);
+
+  final exitCode = await installProcess.exitCode;
+  if (exitCode == 0) {
+    print('\nJava $selectedVersion installed successfully via SDKMAN.');
+  } else {
+    print('\nFailed to install Java $selectedVersion.');
   }
 }
