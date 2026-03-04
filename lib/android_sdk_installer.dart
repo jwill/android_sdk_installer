@@ -67,6 +67,7 @@ void main() async {
   try {
     await installAndroidSdk(platformKey, sdkRoot);
     await installAndroidComponents(sdkRoot);
+    await createAvd(sdkRoot, androidSystemImage);
     await installJava();
   } catch (e) {
     print('\nAn error occurred during installation: $e');
@@ -387,5 +388,98 @@ export PATH="$targetPath/bin:\$PATH"
     }
   } catch (e) {
     print('Failed to update $profileName: $e');
+  }
+}
+
+/// Prompts the user to create an AVD.
+Future<void> createAvd(String sdkRoot, String systemImage) async {
+  final wantAvd = Confirm(prompt: 'Do you want to create an Android Virtual Device (AVD)?').interact();
+  if (!wantAvd) return;
+
+  final home = Platform.isWindows 
+      ? Platform.environment['USERPROFILE'] 
+      : Platform.environment['HOME'];
+  
+  if (home == null) {
+    print('Could not find home directory to locate AVDs.');
+    return;
+  }
+
+  final avdDir = p.join(home, '.android', 'avd');
+  
+  if (Directory(avdDir).existsSync()) {
+    final contents = Directory(avdDir).listSync();
+    if (contents.isNotEmpty) {
+      print('\nAn AVD already appears to exist at $avdDir. Skipping AVD creation to avoid conflicts.');
+      return;
+    }
+  }
+
+  final avdName = Input(
+    prompt: 'Enter a name for the new AVD',
+    defaultValue: 'Pixel_10_API_36',
+  ).interact();
+
+  final avdManagerPath = p.join(sdkRoot, 'cmdline-tools', 'latest', 'bin', 'avdmanager');
+  if (!File(avdManagerPath).existsSync()) {
+    print('Error: avdmanager not found at $avdManagerPath');
+    return;
+  }
+
+  // Ensure avdmanager is executable on Unix-like systems
+  if (!Platform.isWindows) {
+    final stat = File(avdManagerPath).statSync();
+    if (!stat.modeString().contains('x')) {
+      print('avdmanager is not executable. Setting executable bit...');
+      await Process.run('chmod', ['+x', avdManagerPath]);
+    }
+  }
+
+  print('\nCreating AVD: $avdName...');
+  // echo "no" | avdmanager create avd --name "$avdName" --package "$systemImage" --device "pixel_9"
+  // Using pixel_9 as a reliable hardware profile
+  final createProcess = await Process.start('bash', [
+    '-c',
+    'echo "no" | "$avdManagerPath" create avd --name "$avdName" --package "$systemImage" --device "pixel_9"'
+  ]);
+
+  await stdout.addStream(createProcess.stdout);
+  await stderr.addStream(createProcess.stderr);
+  final exitCode = await createProcess.exitCode;
+
+  if (exitCode != 0) {
+    print('Failed to create AVD (exit code: $exitCode).');
+    return;
+  }
+
+  print('\nAVD $avdName created successfully.');
+
+  // Enable hardware keyboard
+  // We check both config.ini and hardware-qemu.ini as per user notes and standard practice
+  final avdFolderPath = p.join(avdDir, '$avdName.avd');
+  final configFiles = [
+    p.join(avdFolderPath, 'config.ini'),
+    p.join(avdFolderPath, 'hardware-qemu.ini'),
+  ];
+
+  for (final filePath in configFiles) {
+    final file = File(filePath);
+    if (file.existsSync()) {
+      print('Enabling hardware keyboard in $filePath...');
+      final lines = file.readAsLinesSync();
+      bool updated = false;
+      final newLines = lines.map((line) {
+        if (line.trim().startsWith('hw.keyboard')) {
+          updated = true;
+          return 'hw.keyboard=true';
+        }
+        return line;
+      }).toList();
+
+      if (!updated) {
+        newLines.add('hw.keyboard=true');
+      }
+      file.writeAsStringSync(newLines.join('\n'));
+    }
   }
 }
