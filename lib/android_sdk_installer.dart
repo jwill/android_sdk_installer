@@ -74,10 +74,10 @@ void main() async {
 
   try {
     await installAndroidSdk(platformKey, sdkRoot);
+    await installJava();
     await installAndroidComponents(sdkRoot);
     await createAvd(sdkRoot, androidSystemImage);
     await configureFlutter(sdkRoot);
-    await installJava();
     await printSummary(sdkRoot);
   } catch (e) {
     print('\nAn error occurred during installation: $e');
@@ -214,7 +214,7 @@ Future<void> installAndroidComponents(String sdkRoot) async {
 
   print('\nAccepting Android SDK licenses...');
   // Running yes | sdkmanager --licenses --sdk_root=$sdkRoot
-  final licenseProcess = await Process.start('bash', ['-c', 'yes | "$sdkManagerPath" --licenses --sdk_root="$sdkRoot"']);
+  final licenseProcess = await Process.start('bash', ['-l', '-c', 'yes | "$sdkManagerPath" --licenses --sdk_root="$sdkRoot"']);
   await stdout.addStream(licenseProcess.stdout);
   await stderr.addStream(licenseProcess.stderr);
   await licenseProcess.exitCode;
@@ -237,11 +237,11 @@ Future<void> installAndroidComponents(String sdkRoot) async {
     'cmake;$ANDROID_CMAKE_VERSION',
   ];
 
-  final installProcess = await Process.start(sdkManagerPath, [
-    '--install',
-    '--sdk_root=$sdkRoot',
-    ...components,
-  ]);
+  // Run sdkmanager through a login shell to ensure Java (via SDKMAN etc.) is in the PATH
+  final installProcess = await Process.start(
+    'bash',
+    ['-l', '-c', '"$sdkManagerPath" --install --sdk_root="$sdkRoot" ${components.map((c) => '"$c"').join(' ')}'],
+  );
 
   await stdout.addStream(installProcess.stdout);
   await stderr.addStream(installProcess.stderr);
@@ -448,14 +448,18 @@ Future<void> createAvd(String sdkRoot, String systemImage) async {
   print('\nCreating AVD: $avdName...');
   // echo "no" | avdmanager create avd --name "$avdName" --package "$systemImage" --device "pixel_9"
   // Using pixel_9 as a reliable hardware profile
-  final createProcess = await Process.start('bash', [
-    '-c',
-    'echo "no" | "$avdManagerPath" create avd --name "$avdName" --package "$systemImage" --device "pixel_9"'
-  ]);
+  final process = await Process.start(
+    'bash',
+    [
+      '-l',
+      '-c',
+      'echo "no" | "$avdManagerPath" create avd --name "$avdName" --package "$systemImage" --device "pixel_9"'
+    ],
+  );
 
-  await stdout.addStream(createProcess.stdout);
-  await stderr.addStream(createProcess.stderr);
-  final exitCode = await createProcess.exitCode;
+  await stdout.addStream(process.stdout);
+  await stderr.addStream(process.stderr);
+  final exitCode = await process.exitCode;
 
   if (exitCode != 0) {
     print('Failed to create AVD (exit code: $exitCode).');
@@ -552,7 +556,10 @@ Future<void> printSummary(String sdkRoot) async {
       if (!Platform.isWindows) {
         await Process.run('chmod', ['+x', avdManagerPath]);
       }
-      final avdProcess = await Process.run(avdManagerPath, ['list', 'avd']);
+      final avdProcess = await Process.run(
+        'bash',
+        ['-l', '-c', '"$avdManagerPath" list avd'],
+      );
       if (avdProcess.exitCode == 0) {
         final output = avdProcess.stdout.toString();
         final names = RegExp(r'Name: (.*)').allMatches(output).map((m) => m.group(1)).toList();
