@@ -1,39 +1,39 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Android SDK Installer
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
-
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+A command-line tool to automate the setup of Android Command Line Tools. This script fetches the latest tools from the official Android Developers site, handles downloading, and extracts them to the appropriate platform-specific directory.
 
 ## Features
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+- **Automated Discovery**: Scrapes the latest Command Line Tools URL for your platform.
+- **Platform Support**: Works on macOS, Linux, and Windows.
+- **Smart Extraction**: Automatically nests files in `cmdline-tools/latest` for compatibility with `sdkmanager`.
+- **Interactive**: Prompts for confirmation of the installation directory.
 
 ## Getting started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Ensure you have Dart or Flutter installed on your system.
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+1. Clone the repository.
+2. Run `dart pub get` to install dependencies.
+3. Execute the installer script:
 
-```dart
-const like = 'sample';
+```bash
+dart run lib/android_sdk_installer.dart
+```
+
+4. Follow the interactive prompts to confirm your Android SDK root directory.
+
+## Post-Installation
+
+After the script finishes, add the binary path to your shell configuration (e.g., `.zshrc` or `.bashrc`):
+
+```bash
+# Example for macOS/Linux
+export PATH="$HOME/Library/Android/Sdk/cmdline-tools/latest/bin:$PATH"
 ```
 
 ## Additional information
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+This tool is designed to simplify the initial setup of Android SDKs for developers using Flutter or pure Android development.
