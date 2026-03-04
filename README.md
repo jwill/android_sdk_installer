@@ -5,9 +5,10 @@ A command-line tool to automate the setup of Android Command Line Tools. This sc
 ## Features
 
 - **Automated Discovery**: Scrapes the latest Command Line Tools URL for your platform.
+- **Component Setup**: Automatically installs NDK (28.2.x), Build Tools (36.0.0), Platforms (Android 36), System Images, and more via `sdkmanager`.
 - **Platform Support**: Works on macOS, Linux, and Windows.
 - **Smart Extraction**: Automatically nests files in `cmdline-tools/latest` for compatibility with `sdkmanager`.
-- **Interactive**: Prompts for confirmation of Android SDK installation, target directory, and optional Java setup.
+- **Interactive**: Prompts for confirmation of Android SDK installation, target directory, optional Java setup, and automatic PATH configuration.
 - **Java Management**: Integrated SDKMAN support for installing Amazon Corretto Java versions (Java 11 recommended).
 
 ## Getting started

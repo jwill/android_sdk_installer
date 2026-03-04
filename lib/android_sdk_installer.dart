@@ -8,6 +8,13 @@ import 'package:path/path.dart' as p;
 /// Preferred Java version (major version number followed by a dot).
 const String JAVA_VERSION_PREFERENCE = '11.';
 
+/// Android SDK component versions
+const String ANDROID_NDK_VERSION = '28.2.13676358';
+const String ANDROID_API_LEVEL = '36';
+const String ANDROID_BUILD_TOOLS_VERSION = '36.0.0';
+const String ANDROID_CMAKE_VERSION = '4.1.2';
+const String ANDROID_SYSTEM_IMAGE = 'system-images;android-$ANDROID_API_LEVEL;google_apis;arm64-v8a';
+
 /// Script to install Android SDK components.
 void main() async {
   String os = Platform.operatingSystem;
@@ -36,6 +43,7 @@ void main() async {
 
   try {
     await installAndroidSdk(platformKey, sdkRoot);
+    await installAndroidComponents(sdkRoot);
     await installJava();
   } catch (e) {
     print('\nAn error occurred during installation: $e');
@@ -146,6 +154,61 @@ Future<void> installAndroidSdk(String platformKey, String sdkRoot) async {
   print('\nAndroid Command Line Tools successfully installed to $targetPath');
   print('Remember to add the following to your shell profile:');
   print('export PATH="$targetPath/bin:\$PATH"');
+
+  await addToPath(targetPath);
+}
+
+/// Installs Android SDK components using sdkmanager.
+Future<void> installAndroidComponents(String sdkRoot) async {
+  final confirm = Confirm(prompt: 'Do you want to install Android SDK components (NDK, Build Tools, etc.)?').interact();
+  if (!confirm) return;
+
+  final sdkManagerPath = p.join(sdkRoot, 'cmdline-tools', 'latest', 'bin', 'sdkmanager');
+  if (!File(sdkManagerPath).existsSync()) {
+    print('Error: sdkmanager not found at $sdkManagerPath');
+    return;
+  }
+
+  print('\nAccepting Android SDK licenses...');
+  // Running yes | sdkmanager --licenses --sdk_root=$sdkRoot
+  final licenseProcess = await Process.start('bash', ['-c', 'yes | "$sdkManagerPath" --licenses --sdk_root="$sdkRoot"']);
+  await stdout.addStream(licenseProcess.stdout);
+  await stderr.addStream(licenseProcess.stderr);
+  await licenseProcess.exitCode;
+
+  print('\nInstalling components:');
+  print(' - NDK: $ANDROID_NDK_VERSION');
+  print(' - Build Tools: $ANDROID_BUILD_TOOLS_VERSION');
+  print(' - API: $ANDROID_API_LEVEL');
+  print(' - System Image: $ANDROID_SYSTEM_IMAGE');
+  print(' - Cmake: $ANDROID_CMAKE_VERSION');
+  print(' - Platform Tools, Emulator');
+
+  final components = [
+    'ndk;$ANDROID_NDK_VERSION',
+    'build-tools;$ANDROID_BUILD_TOOLS_VERSION',
+    'platforms;android-$ANDROID_API_LEVEL',
+    ANDROID_SYSTEM_IMAGE,
+    'platform-tools',
+    'emulator',
+    'cmake;$ANDROID_CMAKE_VERSION',
+  ];
+
+  final installProcess = await Process.start(sdkManagerPath, [
+    '--install',
+    '--sdk_root=$sdkRoot',
+    ...components,
+  ]);
+
+  await stdout.addStream(installProcess.stdout);
+  await stderr.addStream(installProcess.stderr);
+
+  final exitCode = await installProcess.exitCode;
+  if (exitCode == 0) {
+    print('\nAndroid components installed successfully.');
+  } else {
+    print('\nFailed to install Android components (exit code: $exitCode).');
+  }
 }
 
 /// Installs Java using SDKMAN if requested.
@@ -237,5 +300,60 @@ Future<void> installJava() async {
     print('\nJava $selectedVersion installed successfully via SDKMAN.');
   } else {
     print('\nFailed to install Java $selectedVersion.');
+  }
+}
+
+/// Adds the SDK bin directory to the system PATH.
+Future<void> addToPath(String targetPath) async {
+  if (Platform.isWindows) {
+    print('\nAutomatic PATH configuration is not yet supported on Windows.');
+    print('Please add "$targetPath/bin" to your Environment Variables manually.');
+    return;
+  }
+
+  final confirm = Confirm(prompt: 'Do you want to add the Android SDK to your PATH?').interact();
+  if (!confirm) return;
+
+  final home = Platform.environment['HOME'];
+  if (home == null) {
+    print('Could not find HOME environment variable.');
+    return;
+  }
+
+  // Identify shell profile
+  final shell = Platform.environment['SHELL'] ?? '';
+  String profileName;
+  if (shell.contains('zsh')) {
+    profileName = '.zshrc';
+  } else if (Platform.isMacOS) {
+    profileName = '.bash_profile';
+  } else {
+    profileName = '.bashrc';
+  }
+
+  final profilePath = p.join(home, profileName);
+  final exportCmd = '''
+
+# Android SDK Command Line Tools
+export PATH="$targetPath/bin:\$PATH"
+''';
+
+  try {
+    final profileFile = File(profilePath);
+    if (!profileFile.existsSync()) {
+      print('Creating new profile: $profilePath');
+      profileFile.createSync();
+    }
+
+    final content = profileFile.readAsStringSync();
+    if (content.contains(targetPath)) {
+      print('Path already exists in $profileName.');
+    } else {
+      profileFile.writeAsStringSync(exportCmd, mode: FileMode.append);
+      print('Successfully added to $profilePath. Please restart your terminal or run:');
+      print('source ~/$profileName');
+    }
+  } catch (e) {
+    print('Failed to update $profileName: $e');
   }
 }
