@@ -11,7 +11,8 @@ A command-line tool to automate the setup of Android Command Line Tools. This sc
 - **Dynamic Architecture Detection**: Automatically detects CPU architecture (`arm64-v8a` for M-series/ARM or `x86_64` for Intel/AMD) to ensure the correct Android system image is installed.
 - **Auto-Executable Tooling**: Automatically checks and sets the executable bit for `sdkmanager` on macOS and Linux, ensuring smooth installation even if permissions are missing.
 - **Play Store Images**: Specifically targets `google_apis_playstore` variants for better application testing support.
-- **Interactive**: Prompts for confirmation of Android SDK installation, target directory, optional Java setup, automatic PATH configuration, and **AVD creation**.
+- **Interactive**: Prompts for confirmation of Android SDK installation, target directory, optional Java setup, automatic PATH configuration, AVD creation, and **Flutter integration**.
+- **Flutter Support**: Automatically informs Flutter of the new Android SDK location using `flutter config --android-sdk` and runs `flutter doctor` for status verification.
 - **AVD Management**: Automatically creates an Android Virtual Device (AVD) with the latest system image and enables the hardware keyboard for better usability.
 - **Java Management**: Integrated SDKMAN support for installing Amazon Corretto Java versions (Java 11 recommended).
 

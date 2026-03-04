@@ -76,6 +76,7 @@ void main() async {
     await installAndroidSdk(platformKey, sdkRoot);
     await installAndroidComponents(sdkRoot);
     await createAvd(sdkRoot, androidSystemImage);
+    await configureFlutter(sdkRoot);
     await installJava();
   } catch (e) {
     print('\nAn error occurred during installation: $e');
@@ -489,5 +490,37 @@ Future<void> createAvd(String sdkRoot, String systemImage) async {
       }
       file.writeAsStringSync(newLines.join('\n'));
     }
+  }
+}
+
+/// Informs Flutter of the Android SDK location.
+Future<void> configureFlutter(String sdkRoot) async {
+  final wantFlutter = Confirm(prompt: 'Do you want to configure Flutter with the new Android SDK path?').interact();
+  if (!wantFlutter) return;
+
+  try {
+    print('\nChecking Flutter status...');
+    final doctorProcess = await Process.start('bash', ['-l', '-c', 'flutter doctor']);
+    await stdout.addStream(doctorProcess.stdout);
+    await stderr.addStream(doctorProcess.stderr);
+    await doctorProcess.exitCode;
+
+    print('\nConfiguring Flutter Android SDK path...');
+    final configProcess = await Process.start('bash', ['-l', '-c', 'flutter config --android-sdk "$sdkRoot"']);
+    await stdout.addStream(configProcess.stdout);
+    await stderr.addStream(configProcess.stderr);
+    
+    final exitCode = await configProcess.exitCode;
+    if (exitCode == 0) {
+      print('\nFlutter successfully configured with Android SDK at $sdkRoot');
+    } else {
+      print('\nFailed to configure Flutter (exit code: $exitCode)');
+    }
+  } on ProcessException catch (e) {
+    print('\nCould not find the "flutter" command in your PATH: ${e.message}');
+    print('Please ensure Flutter is installed and added to your PATH, then run:');
+    print('  flutter config --android-sdk $sdkRoot');
+  } catch (e) {
+    print('\nAn unexpected error occurred while configuring Flutter: $e');
   }
 }
