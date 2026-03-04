@@ -78,6 +78,7 @@ void main() async {
     await createAvd(sdkRoot, androidSystemImage);
     await configureFlutter(sdkRoot);
     await installJava();
+    await printSummary(sdkRoot);
   } catch (e) {
     print('\nAn error occurred during installation: $e');
   }
@@ -523,4 +524,62 @@ Future<void> configureFlutter(String sdkRoot) async {
   } catch (e) {
     print('\nAn unexpected error occurred while configuring Flutter: $e');
   }
+}
+
+/// Prints a summary of the installation and environment.
+Future<void> printSummary(String sdkRoot) async {
+  print('\n' + '=' * 60);
+  print('INSTALLATION SUMMARY');
+  print('=' * 60);
+
+  print('\nAndroid SDK Location: $sdkRoot');
+
+  // Check Java version
+  try {
+    final javaProcess = await Process.run('java', ['-version']);
+    final javaVersion = javaProcess.stderr.toString().split('\n').first;
+    print('Java Version: $javaVersion');
+  } catch (_) {
+    print('Java Version: Not found in PATH');
+  }
+
+  // Check AVDs
+  final avdManagerPath = p.join(sdkRoot, 'cmdline-tools', 'latest', 'bin', 'avdmanager');
+  if (File(avdManagerPath).existsSync()) {
+    print('\nAvailable Android Virtual Devices (AVDs):');
+    try {
+      // Ensure avdmanager is executable
+      if (!Platform.isWindows) {
+        await Process.run('chmod', ['+x', avdManagerPath]);
+      }
+      final avdProcess = await Process.run(avdManagerPath, ['list', 'avd']);
+      if (avdProcess.exitCode == 0) {
+        final output = avdProcess.stdout.toString();
+        final names = RegExp(r'Name: (.*)').allMatches(output).map((m) => m.group(1)).toList();
+        if (names.isEmpty) {
+          print('  (No AVDs created yet)');
+        } else {
+          for (final name in names) {
+            print('  - $name');
+          }
+        }
+      }
+    } catch (e) {
+      print('  Error listing AVDs: $e');
+    }
+  }
+
+  print('\nNext Steps:');
+  print('1. To see all available emulators, run:');
+  print('   flutter emulators');
+  print('\n2. To launch an Android emulator, run:');
+  print('   flutter emulators --launch <AVD_NAME>');
+  print('   (Example: flutter emulators --launch Pixel_10_API_36)');
+  
+  print('\n3. To run your Flutter app on the emulator:');
+  print('   flutter run');
+
+  print('\n' + '=' * 60);
+  print('Happy Coding!');
+  print('=' * 60 + '\n');
 }
