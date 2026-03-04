@@ -6,7 +6,7 @@ import 'package:interact/interact.dart';
 import 'package:path/path.dart' as p;
 
 /// Preferred Java version (major version number followed by a dot).
-const String JAVA_VERSION_PREFERENCE = '11.';
+const String JAVA_VERSION_PREFERENCE = '17.';
 
 /// Android SDK component versions
 const String ANDROID_NDK_VERSION = '28.2.13676358';
