@@ -36,7 +36,15 @@ String getArchitecture() {
   return 'x86_64';
 }
 
-String get androidSystemImage => 'system-images;android-$ANDROID_API_LEVEL;google_apis_playstore;${getArchitecture()}';
+String get androidSystemImage {
+  final arch = getArchitecture();
+  // google_apis_playstore is not available for arm64 on API 36 yet.
+  final variant = (arch == 'arm64-v8a' && ANDROID_API_LEVEL == '36') 
+      ? 'google_apis' 
+      : 'google_apis_playstore';
+  
+  return 'system-images;android-$ANDROID_API_LEVEL;$variant;$arch';
+}
 
 /// Script to install Android SDK components.
 void main() async {
@@ -417,7 +425,7 @@ Future<void> createAvd(String sdkRoot, String systemImage) async {
 
   final avdName = Input(
     prompt: 'Enter a name for the new AVD',
-    defaultValue: 'Pixel_10_API_36',
+    defaultValue: 'Pixel_9_API_36',
   ).interact();
 
   final avdManagerPath = p.join(sdkRoot, 'cmdline-tools', 'latest', 'bin', 'avdmanager');
@@ -471,13 +479,13 @@ Future<void> createAvd(String sdkRoot, String systemImage) async {
       final newLines = lines.map((line) {
         if (line.trim().startsWith('hw.keyboard')) {
           updated = true;
-          return 'hw.keyboard=true';
+          return 'hw.keyboard=yes';
         }
         return line;
       }).toList();
 
       if (!updated) {
-        newLines.add('hw.keyboard=true');
+        newLines.add('hw.keyboard=yes');
       }
       file.writeAsStringSync(newLines.join('\n'));
     }
