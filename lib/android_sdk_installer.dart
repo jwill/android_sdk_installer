@@ -13,7 +13,30 @@ const String ANDROID_NDK_VERSION = '28.2.13676358';
 const String ANDROID_API_LEVEL = '36';
 const String ANDROID_BUILD_TOOLS_VERSION = '36.0.0';
 const String ANDROID_CMAKE_VERSION = '4.1.2';
-const String ANDROID_SYSTEM_IMAGE = 'system-images;android-$ANDROID_API_LEVEL;google_apis;arm64-v8a';
+
+/// Detects the current CPU architecture and returns the corresponding Android architecture string.
+String getArchitecture() {
+  final version = Platform.version.toLowerCase();
+  
+  if (version.contains('arm64') || version.contains('aarch64')) {
+    return 'arm64-v8a';
+  } else if (version.contains('x86_64') || version.contains('amd64')) {
+    return 'x86_64';
+  }
+  
+  // Fallback for macOS if Platform.version is ambiguous
+  if (Platform.isMacOS) {
+    final result = Process.runSync('uname', ['-m']);
+    if (result.stdout.toString().trim() == 'arm64') {
+      return 'arm64-v8a';
+    }
+  }
+
+  // Default to x86_64 as a safe bet for older systems
+  return 'x86_64';
+}
+
+String get androidSystemImage => 'system-images;android-$ANDROID_API_LEVEL;google_apis_playstore;${getArchitecture()}';
 
 /// Script to install Android SDK components.
 void main() async {
@@ -169,6 +192,15 @@ Future<void> installAndroidComponents(String sdkRoot) async {
     return;
   }
 
+  // Ensure sdkmanager is executable on Unix-like systems
+  if (!Platform.isWindows) {
+    final stat = File(sdkManagerPath).statSync();
+    if (!stat.modeString().contains('x')) {
+      print('sdkmanager is not executable. Setting executable bit...');
+      await Process.run('chmod', ['+x', sdkManagerPath]);
+    }
+  }
+
   print('\nAccepting Android SDK licenses...');
   // Running yes | sdkmanager --licenses --sdk_root=$sdkRoot
   final licenseProcess = await Process.start('bash', ['-c', 'yes | "$sdkManagerPath" --licenses --sdk_root="$sdkRoot"']);
@@ -180,7 +212,7 @@ Future<void> installAndroidComponents(String sdkRoot) async {
   print(' - NDK: $ANDROID_NDK_VERSION');
   print(' - Build Tools: $ANDROID_BUILD_TOOLS_VERSION');
   print(' - API: $ANDROID_API_LEVEL');
-  print(' - System Image: $ANDROID_SYSTEM_IMAGE');
+  print(' - System Image: $androidSystemImage');
   print(' - Cmake: $ANDROID_CMAKE_VERSION');
   print(' - Platform Tools, Emulator');
 
@@ -188,7 +220,7 @@ Future<void> installAndroidComponents(String sdkRoot) async {
     'ndk;$ANDROID_NDK_VERSION',
     'build-tools;$ANDROID_BUILD_TOOLS_VERSION',
     'platforms;android-$ANDROID_API_LEVEL',
-    ANDROID_SYSTEM_IMAGE,
+    androidSystemImage,
     'platform-tools',
     'emulator',
     'cmake;$ANDROID_CMAKE_VERSION',
