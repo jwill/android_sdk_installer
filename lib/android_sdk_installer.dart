@@ -5,6 +5,9 @@ import 'package:html/parser.dart' as parser;
 import 'package:interact/interact.dart';
 import 'package:path/path.dart' as p;
 
+/// Preferred Java version (major version number followed by a dot).
+const String JAVA_VERSION_PREFERENCE = '11.';
+
 /// Script to install Android SDK components.
 void main() async {
   String os = Platform.operatingSystem;
@@ -204,18 +207,18 @@ Future<void> installJava() async {
     return;
   }
 
-  // Sort versions descending to show newer ones first
   amznVersions.sort((a, b) => b.compareTo(a));
 
-  print('\nRecommendation: Java 11 (e.g., 11.x.x-amzn)');
+  final displayVersion = JAVA_VERSION_PREFERENCE.replaceAll('.', '');
+  print('\nRecommendation: Java $displayVersion (e.g., ${JAVA_VERSION_PREFERENCE}x.x-amzn)');
   
-  // Find a Java 11 version to recommend
-  final java11Index = amznVersions.indexWhere((v) => v.startsWith('11.'));
+  // Find the preferred Java version to recommend
+  final preferredIndex = amznVersions.indexWhere((v) => v.startsWith(JAVA_VERSION_PREFERENCE));
   
   final selectionIndex = Select(
     prompt: 'Which version of Java would you like to install?',
     options: amznVersions,
-    initialIndex: java11Index != -1 ? java11Index : 0,
+    initialIndex: preferredIndex != -1 ? preferredIndex : 0,
   ).interact();
 
   final selectedVersion = amznVersions[selectionIndex];
