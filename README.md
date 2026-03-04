@@ -7,7 +7,8 @@ A command-line tool to automate the setup of Android Command Line Tools. This sc
 - **Automated Discovery**: Scrapes the latest Command Line Tools URL for your platform.
 - **Platform Support**: Works on macOS, Linux, and Windows.
 - **Smart Extraction**: Automatically nests files in `cmdline-tools/latest` for compatibility with `sdkmanager`.
-- **Interactive**: Prompts for confirmation of the installation directory.
+- **Interactive**: Prompts for confirmation of the installation directory and optional Java installation.
+- **Java Management**: Integrated SDKMAN support for installing Amazon Corretto Java versions (Java 11 recommended).
 
 ## Getting started
 
