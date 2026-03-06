@@ -2,11 +2,18 @@
 
 A command-line tool to automate the setup of Android Command Line Tools. This script fetches the latest tools from the official Android Developers site, handles downloading, and extracts them to the appropriate platform-specific directory.
 
+## Rationale
+
+Whereas installing Android Studio reduces **some** complexity for Flutter developers to get the environment they need for deploying Android applications, it does waste bandwidth because users have to download 1.5GB of an app that they probably won't use just to get another 1GB+ of Java runtime and Android SDK components.
+
+There has always been a path to get things installed without Android Studio but it required a bunch of manual steps and knowing exact locations of where to put things. This project formalizes the process of the install flow.
+
+
 ## Features
 
 - **Automated Discovery**: Scrapes the latest Command Line Tools URL for your platform.
 - **Component Setup**: Automatically installs NDK (28.2.x), Build Tools (36.0.0), Platforms (Android 36), System Images, and more via `sdkmanager`.
-- **Platform Support**: Optimized for **macOS** and **Linux**. While it recognizes Windows, many features currently rely on `bash` (e.g., license acceptance, SDKMAN, AVD creation), so Windows support is limited unless a Unix-like environment is available.
+- **Platform Support**: Optimized for **macOS** and **Linux**. While it recognizes Windows, many features currently rely on `bash` (e.g., license acceptance, SDKMAN, AVD creation), so Windows support is limited unless a Unix-like environment is available(like WSL).
 - **Smart Extraction**: Automatically nests files in `cmdline-tools/latest` for compatibility with `sdkmanager`.
 - **Dynamic Architecture Detection**: Automatically detects CPU architecture (`arm64-v8a` for M-series/ARM or `x86_64` for Intel/AMD) to ensure the correct Android system image is installed.
 - **Auto-Executable Tooling**: Automatically checks and sets the executable bit for `sdkmanager` on macOS and Linux, ensuring smooth installation even if permissions are missing.
