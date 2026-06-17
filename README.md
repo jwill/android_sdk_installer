@@ -21,7 +21,7 @@ There has always been a path to get things installed without Android Studio but 
 - **Interactive**: Prompts for confirmation of Android SDK installation, target directory, optional Java setup, automatic PATH configuration, AVD creation, and **Flutter integration**.
 - **Flutter Support**: Automatically informs Flutter of the new Android SDK location using `flutter config --android-sdk` and runs `flutter doctor` for status verification.
 - **AVD Management**: Automatically creates an Android Virtual Device (AVD) with the latest system image and enables the hardware keyboard for better usability.
-- **Java Management**: Integrated SDKMAN support for installing Amazon Corretto Java versions (Java 11 recommended).
+- **Java Management**: Integrated SDKMAN support for installing Amazon Corretto Java versions (Java 17 recommended).
 
 ## Getting started
 
